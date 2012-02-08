@@ -1,6 +1,18 @@
 (define-module (gdbm)
   #:use-module (system foreign)
-  #:use-module (rnrs bytevectors))
+  #:use-module (rnrs bytevectors)
+  #:export (gdbm-db?
+            ;; flags
+            GDBM_READER
+            GDBM_WRITER
+            GDBM_WRCREAT
+            GDBM_NEWDB
+            GDBM_SYNC
+            GDBM_NOLOCK
+            GDBM_NOMMAP
+            ;; procedures
+            gdbm-open
+            gdbm-close))
 
 (define datum (list '* int))
 
@@ -71,3 +83,31 @@
 
 (define (gdbm-error)
   (error (pointer->string (%gdbm-strerror (gdbm-errno)))))
+
+;;; open flags
+
+;; currently copied from gdbm.h, should really be generated or something
+(define GDBM_READER 0)
+(define GDBM_WRITER 1)
+(define GDBM_WRCREAT 2)
+(define GDBM_NEWDB 3)
+(define GDBM_SYNC #x20)
+(define GDBM_NOLOCK #x40)
+(define GDBM_NOMMAP #x80)
+
+;;; db procedures
+
+(define* (gdbm-open path flags #:key (mode #o666) (block-size 512))
+  (define-foreign %gdbm-open '* "gdbm_open" (list '* int int int '*))
+  ;; currently doesn't provide option to specify fatal_thunk
+  (let ((result (%gdbm-open (string->pointer path)
+                            block-size
+                            flags
+                            mode
+                            %null-pointer)))
+    (when (null-pointer? result)
+      (gdbm-error))
+    (wrap-db result)))
+
+(define (gdbm-close db)
+  (%gdbm-close (unwrap-db db)))
