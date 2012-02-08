@@ -1,6 +1,6 @@
 (define-module (gdbm)
-  #:use-modules (system foreign)
-  #:use-modules (rnrs bytevectors))
+  #:use-module (system foreign)
+  #:use-module (rnrs bytevectors))
 
 (define datum (list '* int))
 
