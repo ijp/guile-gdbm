@@ -2,6 +2,8 @@
   #:use-modules (system foreign)
   #:use-modules (rnrs bytevectors))
 
+(define datum (list '* int))
+
 (define-syntax-rule (define-foreign name ret string-name args)
   (define name
     (pointer->procedure ret (dynamic-func string-name libgdbm) args)))
@@ -12,15 +14,15 @@
 
 (define-foreign %gdbm-close void "gdbm_close" '(*))
 
-(define-foreign %gdbm-store int "gdbm_store" `(* * * ,int))
+(define-foreign %gdbm-store int "gdbm_store" (list '* datum datum int))
 
-(define-foreign %gdbm-fetch '* "gdbm_fetch" '(* *))
+(define-foreign %gdbm-fetch datum "gdbm_fetch" (list '* datum))
 
-(define-foreign %gdbm-delete int "gdbm_delete" '(* *))
+(define-foreign %gdbm-delete int "gdbm_delete" (list '* datum))
 
-(define-foreign %gdbm-first-key '* "gdbm_firstkey" '(*))
+(define-foreign %gdbm-first-key datum "gdbm_firstkey" '(*))
 
-(define-foreign %gdbm-next-key '* "gdbm_nextkey" '(* *))
+(define-foreign %gdbm-next-key datum "gdbm_nextkey" (list '* datum))
 
 (define-foreign %gdbm-reorganize int "gdbm_reorganize" '(*))
 
@@ -50,12 +52,12 @@
   (let ((bv (string->utf8 string)))
     (when (> (bytevector-length bv) maximum-int)
       (error "string is too large for db"))
-    (make-c-struct (list '* int)
+    (make-c-struct datum
                    (list (bytevector->pointer bv)
                          (bytevector-length bv)))))
 
-(define (db-datum->string datum)
-  (let* ((struct (parse-c-struct datum (list '* int)))
+(define (db-datum->string db-datum)
+  (let* ((struct (parse-c-struct db-datum datum))
          (bv-pointer (car struct))
          (bv-length (cadr struct)))
     (utf8->string (pointer->bytevector bv-pointer bv-length))))
