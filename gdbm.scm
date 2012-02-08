@@ -61,3 +61,13 @@
          (bv-pointer (car struct))
          (bv-length (cadr struct)))
     (utf8->string (pointer->bytevector bv-pointer bv-length))))
+
+;;; errors
+
+(define %errno (dynamic-pointer "gdbm_errno" libgdbm))
+
+(define (gdbm-errno)
+  (pointer-address (dereference-pointer %errno)))
+
+(define (gdbm-error)
+  (error (pointer->string (%gdbm-strerror (gdbm-errno)))))
