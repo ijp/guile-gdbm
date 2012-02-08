@@ -1,5 +1,6 @@
 (define-module (gdbm)
-  #:use-modules (system foreign))
+  #:use-modules (system foreign)
+  #:use-modules (rnrs bytevectors))
 
 (define-syntax-rule (define-foreign name ret string-name args)
   (define name
@@ -32,3 +33,29 @@
 (define-foreign %gdbm-setopt int "gdbm_setopt" `(* ,int * ,int))
 
 (define-foreign %gdbm-fdesc int "gdbm_fdesc" '(*))
+
+;;; gdbm types
+
+(define-wrapped-pointer-type gdbm-db
+  gdbm-db?
+  wrap-db
+  unwrap-db
+  (lambda (db port)
+    ;; just a simple way to distinguish different dbs for now
+    (format port "#<gdbm-db ~a>" (pointer-address (unwrap-db db)))))
+
+(define maximum-int (- (expt 2 (* 8 (sizeof int))) 1))
+
+(define (string->db-datum string)
+  (let ((bv (string->utf8 string)))
+    (when (> (bytevector-length bv) maximum-int)
+      (error "string is too large for db"))
+    (make-c-struct (list '* int)
+                   (list (bytevector->pointer bv)
+                         (bytevector-length bv)))))
+
+(define (db-datum->string datum)
+  (let* ((struct (parse-c-struct datum (list '* int)))
+         (bv-pointer (car struct))
+         (bv-length (cadr struct)))
+    (utf8->string (pointer->bytevector bv-pointer bv-length))))
