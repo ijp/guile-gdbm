@@ -14,11 +14,19 @@
             gdbm-open
             gdbm-close))
 
+;;; utilities
+
+(define free
+  (let ((this (dynamic-link)))
+    (pointer->procedure void (dynamic-func "free" this) '(*))))
+
 (define datum (list '* int))
 
 (define-syntax-rule (define-foreign name ret string-name args)
   (define name
     (pointer->procedure ret (dynamic-func string-name libgdbm) args)))
+
+;;; low-level libgdbm access
 
 (define libgdbm (dynamic-link "libgdbm"))
 
@@ -72,7 +80,12 @@
   (let* ((struct (parse-c-struct db-datum datum))
          (bv-pointer (car struct))
          (bv-length (cadr struct)))
-    (utf8->string (pointer->bytevector bv-pointer bv-length))))
+    (if (null-pointer? bv-pointer)
+        #f
+        (let* ((bv (pointer->bytevector bv-pointer bv-length))
+               (str (utf8->string bv)))
+          (free bv-pointer)
+          str))))
 
 ;;; errors
 
