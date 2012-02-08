@@ -52,7 +52,7 @@
 
 (define-foreign %gdbm-sync void "gdbm_sync" '(*))
 
-(define-foreign %gdbm-exists int "gdbm_exists" '(* *))
+(define-foreign %gdbm-exists int "gdbm_exists" (list '* datum))
 
 (define-foreign %gdbm-strerror '* "gdbm_strerror" (list int))
 
