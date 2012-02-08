@@ -12,7 +12,11 @@
             GDBM_NOMMAP
             ;; procedures
             gdbm-open
-            gdbm-close))
+            gdbm-close
+            gdbm-set!
+            gdbm-ref
+            gdbm-contains?
+            gdbm-delete!))
 
 ;;; utilities
 
@@ -108,6 +112,10 @@
 (define GDBM_NOLOCK #x40)
 (define GDBM_NOMMAP #x80)
 
+;;; insert flags
+(define GDBM_INSERT 0)
+(define GDBM_REPLACE 1)
+
 ;;; db procedures
 
 (define* (gdbm-open path flags #:key (mode #o666) (block-size 512))
@@ -124,3 +132,29 @@
 
 (define (gdbm-close db)
   (%gdbm-close (unwrap-db db)))
+
+(define* (gdbm-set! db key value #:key (replace? #t))
+  ;; traditional scheme semantics is always replace
+  (define flag (if replace? GDBM_REPLACE GDBM_INSERT))
+  (define key-datum (string->db-datum key))
+  (define value-datum (string->db-datum value))
+  (case (%gdbm-store (unwrap-db db) key-datum value-datum flag)
+    ((-1)
+     (error "invalid data in key or value"))
+    ((1)
+     (error "data exists for this key, and called with #:replace? #f"))))
+
+(define* (gdbm-ref db key #:optional (default #f))
+  (let ((result (%gdbm-fetch (unwrap-db db) (string->db-datum key))))
+    (or (db-datum->string result)
+        default)))
+
+(define (gdbm-contains? db key)
+  (not (zero? (%gdbm-exists (unwrap-db db) (string->db-datum key)))))
+
+(define (gdbm-delete! db key)
+  (let ((result (%gdbm-delete (unwrap-db db) (string->db-datum key))))
+    (unless (zero? result)
+      ;; stub for now. Correct error handling will to be able to
+      ;; determine whether db is a reader or a writer.
+      *unspecified*)))
