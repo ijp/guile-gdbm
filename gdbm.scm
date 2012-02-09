@@ -16,7 +16,10 @@
             gdbm-set!
             gdbm-ref
             gdbm-contains?
-            gdbm-delete!))
+            gdbm-delete!
+            gdbm-for-each
+            gdbm-fold
+            ))
 
 ;;; utilities
 
@@ -80,7 +83,7 @@
                    (list (bytevector->pointer bv)
                          (bytevector-length bv)))))
 
-(define (db-datum->string db-datum)
+(define* (db-datum->string db-datum #:key (free? #f))
   (let* ((struct (parse-c-struct db-datum datum))
          (bv-pointer (car struct))
          (bv-length (cadr struct)))
@@ -88,8 +91,15 @@
         #f
         (let* ((bv (pointer->bytevector bv-pointer bv-length))
                (str (utf8->string bv)))
-          (free bv-pointer)
+          (when free?
+            (free bv-pointer))
           str))))
+
+(define (free-db-datum db-datum)
+  (let* ((struct (parse-c-struct db-datum datum))
+         (str (car struct)))
+    (unless (null-pointer? str )
+      (free str))))
 
 ;;; errors
 
@@ -146,7 +156,7 @@
 
 (define* (gdbm-ref db key #:optional (default #f))
   (let ((result (%gdbm-fetch (unwrap-db db) (string->db-datum key))))
-    (or (db-datum->string result)
+    (or (db-datum->string result #:free? #t)
         default)))
 
 (define (gdbm-contains? db key)
@@ -158,3 +168,24 @@
       ;; stub for now. Correct error handling will to be able to
       ;; determine whether db is a reader or a writer.
       *unspecified*)))
+
+(define (gdbm-for-each proc db)
+  (gdbm-fold (lambda (key value old)
+               (proc key value))
+             #f
+             db)
+  *unspecified*)
+
+(define (gdbm-fold kons knil db)
+  ;; not call/cc safe, nor should kons delete from the database
+  (let ((db (unwrap-db db)))
+    (let loop ((raw-key (%gdbm-first-key db)) (knil knil))
+      (let ((key-str (db-datum->string raw-key)))
+        (if key-str
+            ;; since key is there, we assume we always get a successful response
+            (let* ((val (db-datum->string (%gdbm-fetch db raw-key) #:free? #t))
+                   (next-value (kons key-str val knil))
+                   (next-key (%gdbm-next-key db raw-key)))
+              (free-db-datum raw-key)
+              (loop next-key next-value))
+            knil)))))
