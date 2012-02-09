@@ -113,6 +113,14 @@
             (db-path db)
             (if (db-closed? db) "(closed)" ""))))
 
+(define gdbm-guardian (make-guardian))
+(add-hook! after-gc-hook
+           (lambda ()
+             (let loop ((db (gdbm-guardian)))
+               (when db
+                 (gdbm-close db)
+                 (loop (gdbm-guardian))))))
+
 (define maximum-int (- (expt 2 (* 8 (sizeof int))) 1))
 
 (define (string->db-datum string)
@@ -177,7 +185,9 @@
                             %null-pointer)))
     (when (null-pointer? result)
       (gdbm-error))
-    (make-db result path (writeable? flags))))
+    (let ((db (make-db result path (writeable? flags))))
+      (gdbm-guardian db)
+      db)))
 
 (define (writeable? flags)
   (define GDBM_OPENMASK 7)
