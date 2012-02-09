@@ -205,7 +205,7 @@
   (define value-datum (string->db-datum value))
   (case (%gdbm-store (unwrap-db db) key-datum value-datum flag)
     ((-1)
-     (error "invalid data in key or value"))
+     (gdbm-error))
     ((1)
      (error "data exists for this key, and called with #:replace? #f"))))
 
