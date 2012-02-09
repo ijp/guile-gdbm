@@ -19,6 +19,7 @@
             gdbm-delete!
             gdbm-for-each
             gdbm-fold
+            gdbm-reorganize
             ))
 
 ;;; utilities
@@ -189,3 +190,7 @@
               (free-db-datum raw-key)
               (loop next-key next-value))
             knil)))))
+
+(define (gdbm-reorganize db)
+  (unless (zero? (%gdbm-reorganize (unwrap-db db)))
+    (gdbm-error)))
