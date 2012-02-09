@@ -184,7 +184,9 @@
   (not (= GDBM_READER (logand GDBM_OPENMASK flags))))
 
 (define (gdbm-close db)
-  (%gdbm-close (unwrap-db db)))
+  (unless (db-closed? db)
+    (%gdbm-close (unwrap-db db))
+    (set-db-closed! db #t)))
 
 (define* (gdbm-set! db key value #:key (replace? #t))
   ;; traditional scheme semantics is always replace
