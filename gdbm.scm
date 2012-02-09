@@ -120,8 +120,7 @@
 (define (free-db-datum db-datum)
   (let* ((struct (parse-c-struct db-datum datum))
          (str (car struct)))
-    (unless (null-pointer? str )
-      (free str))))
+    (free str)))
 
 ;;; errors
 
