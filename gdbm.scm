@@ -109,7 +109,8 @@
 (set-record-type-printer! <gdbm-db>
   (lambda (db port)
     (format port
-            "#<gdbm-db ~a~a>"
+            "#<gdbm-db (~a) ~a~a>"
+            (if (db-can-write? db) "writer" "reader")
             (db-path db)
             (if (db-closed? db) "(closed)" ""))))
 
