@@ -21,6 +21,7 @@
             gdbm-fold
             gdbm-reorganize
             gdbm-sync
+            gdbm->fdes
             ))
 
 ;;; utilities
@@ -198,3 +199,6 @@
 
 (define (gdbm-sync db)
   (%gdbm-sync (unwrap-db db)))
+
+(define (gdbm->fdes db)
+  (%gdbm-fdesc (unwrap-db db)))
