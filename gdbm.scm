@@ -219,10 +219,11 @@
 
 (define (gdbm-delete! db key)
   (let ((result (%gdbm-delete (unwrap-db db) (string->db-datum key))))
-    (unless (zero? result)
-      ;; stub for now. Correct error handling will to be able to
-      ;; determine whether db is a reader or a writer.
-      *unspecified*)))
+    (unless (or (zero? result) (db-can-write? db))
+      ;; In Scheme, we don't usually consider it an error to remove an
+      ;; item that isn't there, so we only need a check for permission
+      ;; to do so.
+      (gdbm-error))))
 
 (define (gdbm-for-each proc db)
   (gdbm-fold (lambda (key value old)
