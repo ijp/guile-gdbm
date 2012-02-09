@@ -41,6 +41,8 @@
             gdbm-reorganize
             gdbm-sync
             gdbm->fdes
+            gdbm-export
+            gdbm-import
             ))
 
 ;;; utilities
@@ -84,6 +86,10 @@
 (define-foreign %gdbm-setopt int "gdbm_setopt" `(* ,int * ,int))
 
 (define-foreign %gdbm-fdesc int "gdbm_fdesc" '(*))
+
+(define-foreign %gdbm-export int "gdbm_export" `(* * ,int ,int))
+
+(define-foreign %gdbm-import int "gdbm_import" `(* * ,int))
 
 ;;; gdbm types
 
@@ -220,3 +226,16 @@
 
 (define (gdbm->fdes db)
   (%gdbm-fdesc (unwrap-db db)))
+
+(define* (gdbm-export db file flag #:key (mode #o666))
+  (define result
+    (%gdbm-export (unwrap-db db) (string->pointer file) flag mode))
+  (when (negative? result)
+    (gdbm-error)))
+
+(define* (gdbm-import db file #:key (replace? #t))
+  (define flag (if replace? GDBM_REPLACE GDBM_INSERT))
+  (define result (%gdbm-import (unwrap-db db) (string->pointer file) flag))
+  (when (negative? result)
+    (gdbm-error)))
+
