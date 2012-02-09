@@ -20,6 +20,8 @@
 (define-module (gdbm)
   #:use-module (system foreign)
   #:use-module (rnrs bytevectors)
+  #:use-module (srfi srfi-9)
+  #:use-module (srfi srfi-9 gnu)
   #:export (gdbm-db?
             ;; flags
             GDBM_READER
@@ -93,13 +95,23 @@
 
 ;;; gdbm types
 
-(define-wrapped-pointer-type gdbm-db
+(define-record-type <gdbm-db>
+  (%make-db pointer path closed? can-write?)
   gdbm-db?
-  wrap-db
-  unwrap-db
+  (pointer unwrap-db)
+  (path db-path)
+  (closed? db-closed? set-db-closed!)
+  (can-write? db-can-write?))
+
+(define (make-db pointer path can-write?)
+  (%make-db pointer path #f can-write?))
+
+(set-record-type-printer! <gdbm-db>
   (lambda (db port)
-    ;; just a simple way to distinguish different dbs for now
-    (format port "#<gdbm-db ~a>" (pointer-address (unwrap-db db)))))
+    (format port
+            "#<gdbm-db ~a~a>"
+            (db-path db)
+            (if (db-closed? db) "(closed)" ""))))
 
 (define maximum-int (- (expt 2 (* 8 (sizeof int))) 1))
 
@@ -165,7 +177,11 @@
                             %null-pointer)))
     (when (null-pointer? result)
       (gdbm-error))
-    (wrap-db result)))
+    (make-db result path (writeable? flags))))
+
+(define (writeable? flags)
+  (define GDBM_OPENMASK 7)
+  (not (= GDBM_READER (logand GDBM_OPENMASK flags))))
 
 (define (gdbm-close db)
   (%gdbm-close (unwrap-db db)))
