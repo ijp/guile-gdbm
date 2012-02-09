@@ -20,6 +20,7 @@
             gdbm-for-each
             gdbm-fold
             gdbm-reorganize
+            gdbm-sync
             ))
 
 ;;; utilities
@@ -194,3 +195,6 @@
 (define (gdbm-reorganize db)
   (unless (zero? (%gdbm-reorganize (unwrap-db db)))
     (gdbm-error)))
+
+(define (gdbm-sync db)
+  (%gdbm-sync (unwrap-db db)))
